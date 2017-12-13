@@ -64,7 +64,7 @@ class LocalStorageApi implements IThumbnailApi
 	public function save(string $src, Image $image)
 	{
 		$this->createDir(dirname($src));
-		$image->save($src);
+		$image->save($src, 100);
 	}
 
 	/**
