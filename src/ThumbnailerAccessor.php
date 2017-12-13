@@ -2,7 +2,7 @@
 namespace Sellastica\Thumbnailer;
 
 use Nette\Http\Request;
-use Sellastica\Core\FactoryAccessor;
+use Sellastica\Core\Model\FactoryAccessor;
 use Sellastica\Project\Model\SettingsAccessor;
 
 class ThumbnailerAccessor extends FactoryAccessor
