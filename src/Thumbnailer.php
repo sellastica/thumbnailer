@@ -126,7 +126,7 @@ class Thumbnailer
 	 * @param int $height
 	 * @return string
 	 */
-	public function createPlaceholder(int $width, int $height)
+	public function createPlaceholder(?int $width, ?int $height)
 	{
 		$options = [
 			'width' => $width,
