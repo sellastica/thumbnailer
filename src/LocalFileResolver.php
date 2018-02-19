@@ -43,7 +43,7 @@ class LocalFileResolver implements IResourceUrlResolver
 	 */
 	public function filemtime(string $src)
 	{
-		return filemtime($src);
+		return @filemtime($src);
 	}
 
 	/**

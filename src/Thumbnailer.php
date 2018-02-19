@@ -44,8 +44,11 @@ class Thumbnailer
 
 		//remove timestamp and other queries from the file name
 		$url = (new \Nette\Http\Url($url))->setQuery(null)->getAbsoluteUrl();
-		$src = $this->urlResolver->getSrc($url);
+		if (!$this->urlResolver->exists($url)) {
+			return $this->createPlaceholder($options->getWidth(), $options->getHeight());
+		}
 
+		$src = $this->urlResolver->getSrc($url);
 		$sourceImage = new SourceImage($src, $url, $this->urlResolver->filemtime($src));
 		$thumbnail = new Thumbnail($sourceImage, $options, $watermarkOptions, $this->api);
 
