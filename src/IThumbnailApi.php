@@ -1,10 +1,28 @@
 <?php
 namespace Sellastica\Thumbnailer;
 
-use Nette\Utils\Image;
-
 interface IThumbnailApi
 {
+	/**
+	 * @param string $src
+	 * @return int
+	 */
+	function getTimestamp(string $src): int;
+
+	/**
+	 * @param string $src
+	 * @param int $timestampToCompare
+	 * @return bool
+	 */
+	function isFresh(string $src, int $timestampToCompare): bool;
+
+	/**
+	 * @param string $url
+	 * @param \Nette\Utils\Image $image
+	 * @return void
+	 */
+	function save(string $url, \Nette\Utils\Image $image);
+
 	/**
 	 * @return string
 	 */
@@ -14,18 +32,4 @@ interface IThumbnailApi
 	 * @return string
 	 */
 	function getThumbnailSrc(): string;
-
-	/**
-	 * @param string $src
-	 * @param SourceImage $sourceImage
-	 * @return bool
-	 */
-	function isFresh(string $src, SourceImage $sourceImage): bool;
-
-	/**
-	 * @param string $url
-	 * @param Image $image
-	 * @return void
-	 */
-	function save(string $url, Image $image);
 }

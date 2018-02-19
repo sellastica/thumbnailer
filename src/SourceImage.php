@@ -9,22 +9,18 @@ class SourceImage implements IImage
 	private $url;
 	/** @var int */
 	private $timestamp;
-	/** @var bool */
-	private $local;
 
 
 	/**
 	 * @param string $src
 	 * @param string $url
 	 * @param int $timestamp
-	 * @param bool $local
 	 */
-	public function __construct(string $src, string $url, int $timestamp, bool $local)
+	public function __construct(string $src, string $url, int $timestamp)
 	{
 		$this->src = $src;
 		$this->url = $url;
 		$this->timestamp = $timestamp;
-		$this->local = $local;
 	}
 
 	/**
@@ -49,13 +45,5 @@ class SourceImage implements IImage
 	public function getTimestamp(): int
 	{
 		return $this->timestamp;
-	}
-
-	/**
-	 * @return bool
-	 */
-	public function isLocal(): bool
-	{
-		return $this->local;
 	}
 }

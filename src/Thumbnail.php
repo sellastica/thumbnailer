@@ -3,9 +3,7 @@ namespace Sellastica\Thumbnailer;
 
 use Nette\Http\Url;
 use Nette\Utils\Image;
-use Nette\Utils\UnknownImageFileException;
 use Sellastica\Http\FileUrl;
-use Sellastica\Thumbnailer\Exception\ThumbnailerOptionsException;
 
 class Thumbnail
 {
@@ -18,10 +16,13 @@ class Thumbnail
 	private $sourceImage;
 	/** @var IThumbnailApi */
 	private $api;
-	/** @var array */
-	private $options;
 	/** @var string|null e.g. Image::JPEG, Image::PNG */
 	private $format;
+
+	/** @var \Sellastica\Thumbnailer\Options */
+	private $options;
+	/** @var null|\Sellastica\Thumbnailer\WatermarkOptions */
+	private $watermarkOptions;
 
 	/** @var string */
 	private $relativeUrl;
@@ -31,14 +32,21 @@ class Thumbnail
 
 	/**
 	 * @param SourceImage $sourceImage
-	 * @param array $options
+	 * @param \Sellastica\Thumbnailer\Options $options
+	 * @param null|\Sellastica\Thumbnailer\WatermarkOptions $watermarkOptions
 	 * @param IThumbnailApi $api
 	 */
-	public function __construct(SourceImage $sourceImage, array $options, IThumbnailApi $api)
+	public function __construct(
+		SourceImage $sourceImage,
+		Options $options,
+		?WatermarkOptions $watermarkOptions,
+		IThumbnailApi $api
+	)
 	{
 		$this->sourceImage = $sourceImage;
-		$this->api = $api;
 		$this->options = $options;
+		$this->watermarkOptions = $watermarkOptions;
+		$this->api = $api;
 	}
 
 	/**
@@ -46,7 +54,15 @@ class Thumbnail
 	 */
 	public function isFresh(): bool
 	{
-		return $this->api->isFresh($this->getSrc(), $this->sourceImage);
+		return $this->api->isFresh($this->getSrc(), $this->sourceImage->getTimestamp());
+	}
+
+	/**
+	 * @return int
+	 */
+	public function getTimestamp(): int
+	{
+		return $this->api->getTimestamp($this->getSrc());
 	}
 
 	/**
@@ -58,20 +74,12 @@ class Thumbnail
 	}
 
 	/**
-	 * @return int|null
-	 */
-	public function getTimestamp(): ?int
-	{
-		return $this->sourceImage->getTimestamp();
-	}
-
-	/**
 	 * @return Url
 	 */
 	public function getUrl(): Url
 	{
 		$url = new Url($this->api->getThumbnailUrl() . '/' . $this->getRelativeUrl());
-		$url->setQueryParameter(FileUrl::TIMESTAMP, $this->getTimestamp());
+		$url->setQueryParameter(FileUrl::TIMESTAMP, $this->api->getTimestamp($this->getSrc()));
 		return $url;
 	}
 
@@ -83,67 +91,66 @@ class Thumbnail
 		return $this->image;
 	}
 
-	/**
-	 * @throws UnknownImageFileException
-	 */
-	public function generate()
+	public function generate(): void
 	{
-		$crop = isset($this->options['crop']) ? (bool)$this->options['crop'] : false;
-		$enlarge = isset($this->options['enlarge']) ? (bool)$this->options['enlarge'] : false;
-		$exact = isset($this->options['exact']) ? (bool)$this->options['exact'] : false;
-		$width = $this->options['width'] ?? null;
-		$height = $this->options['height'] ?? null;
-
 		$image = Image::fromFile($this->sourceImage->getSrc());
-		if ($crop) {
-			$image->resize($width, $height, $enlarge ? Image::FILL : Image::EXACT);
-			$this->image = $image;
-		} elseif ($enlarge) {
-			$image->resize($width, $height, Image::FILL);
-			$this->image = $image;
-		} elseif ($exact) {
-			$image->resize($width, $height, Image::FIT | Image::SHRINK_ONLY);
-			$blank = Image::fromBlank($width, $height, Image::rgb(255, 255, 255, 100));
-			$blank->place($image, '50%', '50%');
-			$this->image = $blank;
-			$this->format = Image::PNG;
-		} else {
-			$image->resize($width, $height, Image::FIT | Image::SHRINK_ONLY);
-			$this->image = $image;
+
+		//if no dimension is set
+		if ($this->options->getWidth() === null 
+			&& $this->options->getHeight() === null) {
+			$this->options->setWidth($image->getWidth());
+			$this->options->setHeight($image->getHeight());
+		}
+
+		switch ($this->options->getOperation()) {
+			case Thumbnailer::CROP:
+				$image->resize($this->options->getWidth(), $this->options->getHeight(), Image::EXACT);
+				$this->image = $image;
+				break;
+			case Thumbnailer::EXACT:
+				$image->resize($this->options->getWidth(), $this->options->getHeight(), Image::FIT | Image::SHRINK_ONLY);
+				$blank = Image::fromBlank($this->options->getWidth(), $this->options->getHeight(), Image::rgb(255, 255, 255, 100));
+				$blank->place($image, '50%', '50%');
+				$this->image = $blank;
+				$this->format = Image::PNG;
+				break;
+			case Thumbnailer::RESIZE:
+				$image->resize($this->options->getWidth(), $this->options->getHeight(), Image::FIT | Image::SHRINK_ONLY);
+				$this->image = $image;
+				break;
+			default:
+				throw new \Sellastica\Thumbnailer\Exception\ThumbnailerException('Uknown operation ' . $this->options->getOperation());
+				break;
 		}
 	}
 
-	public function watermark()
+	public function watermark(): void
 	{
-		$this->assertWatermarkOptions();
-		if (!isset($this->image)) {
-			$this->generate();
+		try {
+			$watermarkImage = Image::fromFile($this->watermarkOptions->getSrc());
+			list($width, $height) = Image::calculateSize(
+				$this->image->getWidth(),
+				$this->image->getHeight(),
+				$this->watermarkOptions->getWidth(),
+				null
+			);
+			$watermarkImage->resize($width, $height);
+			$this->image->place($watermarkImage, $this->watermarkOptions->getLeft(), $this->watermarkOptions->getTop());
+		} catch (\Nette\Utils\ImageException $e) {
 		}
-
-		$watermarkImage = Image::fromFile($this->options['watermark_path']);
-		if (substr($this->options['watermark_width'], -1) === '%') {
-			$this->options['watermark_width'] = $this->options['width'] * $this->options['watermark_width'] / 100;
-		}
-
-		if (substr($this->options['watermark_height'], -1) === '%') {
-			$this->options['watermark_height'] = $this->options['height'] * $this->options['watermark_height'] / 100;
-		}
-
-		$watermarkImage->resize($this->options['watermark_width'], $this->options['watermark_height']);
-		$this->image->place($watermarkImage, $this->options['watermark_left'], $this->options['watermark_top']);
 	}
 
 	/**
 	 * Frees image resource from memory
 	 */
-	public function destroyResourceImage()
+	public function destroyResourceImage(): void
 	{
 		if (isset($this->image)) {
-			imagedestroy($this->image->getImageResource());
+			@imagedestroy($this->image->getImageResource());
 		}
 	}
 
-	public function increaseMemoryLimit()
+	public function increaseMemoryLimit(): void
 	{
 		$this->memoryLimit = ini_get('memory_limit');
 		if ((int)$this->memoryLimit < self::TEMPORARY_MEMORY_LIMIT) {
@@ -151,11 +158,16 @@ class Thumbnail
 		}
 	}
 
-	public function restoreMemoryLimit()
+	public function restoreMemoryLimit(): void
 	{
 		if (isset($this->memoryLimit)) {
 			ini_set('memory_limit', $this->memoryLimit);
 		}
+	}
+
+	public function save(): void
+	{
+		$this->api->save($this->getSrc(), $this->getImage());
 	}
 
 	/**
@@ -183,23 +195,18 @@ class Thumbnail
 	/**
 	 * @return string
 	 */
-	private function getFilename()
+	private function getFilename(): string
 	{
 		$baseName = pathinfo($this->sourceImage->getUrl(), PATHINFO_FILENAME);
-		if (!empty($this->options['watermark'])) {
-			$baseName .= '_w';
-		}
-
-		if (!empty($this->options['crop'])) {
-			$baseName .= '_c';
-		}
-
-		if (!empty($this->options['enlarge'])) {
-			$baseName .= '_e';
-		}
-
-		if (!empty($this->options['exact'])) {
-			$baseName .= '_ex';
+		switch ($this->options->getOperation()) {
+			case Thumbnailer::CROP:
+				$baseName .= '_c';
+				break;
+			case Thumbnailer::EXACT:
+				$baseName .= '_e';
+				break;
+			default:
+				break;
 		}
 
 		return $baseName . '.' . $this->getFileExtension();
@@ -212,30 +219,11 @@ class Thumbnail
 	{
 		if (!isset($this->relativeUrl)) {
 			$url = new Url($this->sourceImage->getUrl());
-			$this->relativeUrl = $this->sourceImage->isLocal()
-				? 'local'
-				: 'remote/' . $url->getHost();
-
-			$this->relativeUrl .= dirname($url->getPath());
-			$this->relativeUrl .= '/' . $this->options['width'] . 'x' . $this->options['height'];
+			$this->relativeUrl = 'local' . dirname($url->getPath());
+			$this->relativeUrl .= '/' . $this->options->getWidth() . 'x' . $this->options->getHeight();
 			$this->relativeUrl .= '/' . $this->getFilename();
 		}
 
 		return $this->relativeUrl;
-	}
-
-	/**
-	 * @throws ThumbnailerOptionsException
-	 */
-	private function assertWatermarkOptions()
-	{
-		if (!isset($this->options['watermark_path'])
-			|| !isset($this->options['watermark_width'])
-			|| !isset($this->options['watermark_height'])
-			|| !isset($this->options['watermark_top'])
-			|| !isset($this->options['watermark_left'])
-		) {
-			throw new ThumbnailerOptionsException('Watermark options incomplete');
-		}
 	}
 }

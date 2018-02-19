@@ -54,12 +54,4 @@ class LocalFileResolver implements IResourceUrlResolver
 	{
 		return (new FileUrl($url))->getUrlFromDocumentRoot();
 	}
-
-	/**
-	 * @return bool
-	 */
-	public function isLocal(): bool
-	{
-		return true;
-	}
 }

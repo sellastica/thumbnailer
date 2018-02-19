@@ -26,9 +26,4 @@ interface IResourceUrlResolver
 	 * @return int|false
 	 */
 	function filemtime(string $src);
-
-	/**
-	 * @return bool
-	 */
-	function isLocal(): bool;
 }

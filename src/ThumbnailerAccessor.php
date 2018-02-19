@@ -1,34 +1,30 @@
 <?php
 namespace Sellastica\Thumbnailer;
 
-use Nette\Http\Request;
 use Sellastica\Core\Model\FactoryAccessor;
-use Sellastica\Project\Model\SettingsAccessor;
 
+/**
+ * @method Thumbnailer get()
+ */
 class ThumbnailerAccessor extends FactoryAccessor
 {
 	/** @var IThumbnailApi */
 	private $api;
-	/** @var \Sellastica\Project\Model\SettingsAccessor */
-	private $settingsAccessor;
-	/** @var Request */
-	private $request;
+	/** @var \Sellastica\Thumbnailer\IResourceUrlResolver */
+	private $urlResolver;
 
 
 	/**
 	 * @param IThumbnailApi $api
-	 * @param \Sellastica\Project\Model\SettingsAccessor $settingsAccessor
-	 * @param Request $request
+	 * @param \Sellastica\Thumbnailer\IResourceUrlResolver $urlResolver
 	 */
 	public function __construct(
 		IThumbnailApi $api,
-		SettingsAccessor $settingsAccessor,
-		Request $request
+		IResourceUrlResolver $urlResolver
 	)
 	{
 		$this->api = $api;
-		$this->settingsAccessor = $settingsAccessor;
-		$this->request = $request;
+		$this->urlResolver = $urlResolver;
 	}
 
 	/**
@@ -36,17 +32,6 @@ class ThumbnailerAccessor extends FactoryAccessor
 	 */
 	public function create(): Thumbnailer
 	{
-		$defaults = [
-			'watermark_path' => WWW_DIR . '/img/watermark.png',
-			'watermark_width' => $this->settingsAccessor->getSetting('thumbnail.watermarkWidth'),
-			'watermark_height' => $this->settingsAccessor->getSetting('thumbnail.watermarkHeight'),
-			'watermark_left' => $this->settingsAccessor->getSetting('thumbnail.watermarkLeft'),
-			'watermark_top' => $this->settingsAccessor->getSetting('thumbnail.watermarkTop'),
-		];
-		$thumbnailer = new Thumbnailer($this->api, $defaults);
-		$thumbnailer->addResourceResolver(new HttpFileResolver($this->request));
-		$thumbnailer->addResourceResolver(new LocalFileResolver($this->request));
-
-		return $thumbnailer;
+		return new Thumbnailer($this->api, $this->urlResolver);
 	}
 }

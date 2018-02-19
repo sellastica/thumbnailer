@@ -10,6 +10,7 @@ class HttpFileResolver implements IResourceUrlResolver
 	/** @var UrlScript */
 	private $refUrl;
 
+
 	/**
 	 * @param Request $request
 	 */
@@ -55,14 +56,6 @@ class HttpFileResolver implements IResourceUrlResolver
 	public function getSrc(string $url): string
 	{
 		return $url;
-	}
-
-	/**
-	 * @return bool
-	 */
-	public function isLocal(): bool
-	{
-		return false;
 	}
 
 	/**

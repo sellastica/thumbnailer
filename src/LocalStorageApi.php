@@ -1,29 +1,65 @@
 <?php
 namespace Sellastica\Thumbnailer;
 
-use Nette;
-use Nette\Http\UrlScript;
-use Nette\Utils\Image;
-
 class LocalStorageApi implements IThumbnailApi
 {
 	/** @var string */
 	private $thumbnailRelativePath;
-	/** @var UrlScript */
+	/** @var \Nette\Http\UrlScript */
 	private $refUrl;
+	/** @var string */
+	private $remoteOriginalRelativePath;
 
 
 	/**
 	 * @param string $thumbnailRelativePath
-	 * @param Nette\Http\Request $request
+	 * @param string $remoteOriginalRelativePath
+	 * @param \Nette\Http\IRequest $httpRequest
 	 */
 	public function __construct(
 		string $thumbnailRelativePath,
-		Nette\Http\Request $request
+		string $remoteOriginalRelativePath,
+		\Nette\Http\IRequest $httpRequest
 	)
 	{
 		$this->thumbnailRelativePath = $thumbnailRelativePath;
-		$this->refUrl = $request->getUrl();
+		$this->remoteOriginalRelativePath = $remoteOriginalRelativePath;
+		$this->refUrl = $httpRequest->getUrl();
+	}
+
+	/**
+	 * @param string $src
+	 * @param int $timestampToCompare
+	 * @return bool
+	 */
+	public function isFresh(string $src, int $timestampToCompare): bool
+	{
+		if (!is_file($src)) {
+			return false;
+		}
+
+		$timestamp = $this->getTimestamp($src);
+		return $timestamp !== false && $timestamp >= $timestampToCompare;
+	}
+
+	/**
+	 * @param string $src
+	 * @return int
+	 */
+	public function getTimestamp(string $src): int
+	{
+		return filemtime($src);
+	}
+
+	/**
+	 * @param string $src
+	 * @param \Nette\Utils\Image $image
+	 * @throws \Nette\InvalidArgumentException
+	 */
+	public function save(string $src, \Nette\Utils\Image $image)
+	{
+		$this->createDir(dirname($src));
+		$image->save($src, 100);
 	}
 
 	/**
@@ -40,31 +76,6 @@ class LocalStorageApi implements IThumbnailApi
 	public function getThumbnailSrc(): string
 	{
 		return WWW_DIR . '/' . $this->thumbnailRelativePath;
-	}
-
-	/**
-	 * @param string $src
-	 * @param SourceImage $sourceImage
-	 * @return bool
-	 */
-	public function isFresh(string $src, SourceImage $sourceImage): bool
-	{
-		if (!is_file($src)) {
-			return false;
-		}
-
-		$filemtime = filemtime($src);
-		return $filemtime !== false && $filemtime >= $sourceImage->getTimestamp();
-	}
-
-	/**
-	 * @param string $src
-	 * @param Image $image
-	 */
-	public function save(string $src, Image $image)
-	{
-		$this->createDir(dirname($src));
-		$image->save($src, 100);
 	}
 
 	/**
