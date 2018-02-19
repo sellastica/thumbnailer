@@ -203,7 +203,7 @@ class Thumbnail
 				$baseName .= '_c';
 				break;
 			case Thumbnailer::EXACT:
-				$baseName .= '_e';
+				$baseName .= '_ex';
 				break;
 			default:
 				break;
