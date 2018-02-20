@@ -4,6 +4,8 @@ namespace Sellastica\Thumbnailer;
 class WatermarkOptions
 {
 	/** @var string */
+	private $src;
+	/** @var string */
 	private $url;
 	/** @var int|string */
 	private $width;
@@ -15,22 +17,14 @@ class WatermarkOptions
 	private $minimalImageWidth;
 	/** @var int */
 	private $minimalImageHeight;
-	/** @var string */
-	private $src;
-	/** @var int|null */
-	private $lastChangeTimestamp;
-	/** @var bool */
-	private $useWatermark;
 
 
 	/**
 	 * @param string $src
 	 * @param string $url
-	 * @param bool $useWatermark
 	 * @param string|int $width
 	 * @param string|int $left
 	 * @param string|int $top
-	 * @param int|null $lastChangeTimestamp
 	 * @param int $minimalImageWidth
 	 * @param int $minimalImageHeight
 	 * @throws \Sellastica\Thumbnailer\Exception\ThumbnailerException
@@ -38,11 +32,9 @@ class WatermarkOptions
 	public function __construct(
 		string $src,
 		string $url,
-		bool $useWatermark,
 		$width,
 		$left,
 		$top,
-		int $lastChangeTimestamp = null,
 		int $minimalImageWidth = 0,
 		int $minimalImageHeight = 0
 	)
@@ -59,8 +51,6 @@ class WatermarkOptions
 		$this->src = $src;
 		$this->minimalImageWidth = $minimalImageWidth;
 		$this->minimalImageHeight = $minimalImageHeight;
-		$this->lastChangeTimestamp = $lastChangeTimestamp;
-		$this->useWatermark = $useWatermark;
 	}
 
 	/**
@@ -104,14 +94,6 @@ class WatermarkOptions
 	}
 
 	/**
-	 * @return int|null
-	 */
-	public function getLastChangeTimestamp(): ?int
-	{
-		return $this->lastChangeTimestamp;
-	}
-
-	/**
 	 * @return int
 	 */
 	public function getMinimalImageWidth(): int
@@ -125,14 +107,6 @@ class WatermarkOptions
 	public function getMinimalImageHeight(): int
 	{
 		return $this->minimalImageHeight;
-	}
-
-	/**
-	 * @return bool
-	 */
-	public function useWatermark(): bool
-	{
-		return $this->useWatermark;
 	}
 
 	/**

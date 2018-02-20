@@ -7,23 +7,18 @@ class LocalStorageApi implements IThumbnailApi
 	private $thumbnailRelativePath;
 	/** @var \Nette\Http\UrlScript */
 	private $refUrl;
-	/** @var string */
-	private $remoteOriginalRelativePath;
 
 
 	/**
 	 * @param string $thumbnailRelativePath
-	 * @param string $remoteOriginalRelativePath
 	 * @param \Nette\Http\IRequest $httpRequest
 	 */
 	public function __construct(
 		string $thumbnailRelativePath,
-		string $remoteOriginalRelativePath,
 		\Nette\Http\IRequest $httpRequest
 	)
 	{
 		$this->thumbnailRelativePath = $thumbnailRelativePath;
-		$this->remoteOriginalRelativePath = $remoteOriginalRelativePath;
 		$this->refUrl = $httpRequest->getUrl();
 	}
 

@@ -21,8 +21,6 @@ class Thumbnail
 
 	/** @var \Sellastica\Thumbnailer\Options */
 	private $options;
-	/** @var null|\Sellastica\Thumbnailer\WatermarkOptions */
-	private $watermarkOptions;
 
 	/** @var string */
 	private $relativeUrl;
@@ -33,19 +31,16 @@ class Thumbnail
 	/**
 	 * @param SourceImage $sourceImage
 	 * @param \Sellastica\Thumbnailer\Options $options
-	 * @param null|\Sellastica\Thumbnailer\WatermarkOptions $watermarkOptions
 	 * @param IThumbnailApi $api
 	 */
 	public function __construct(
 		SourceImage $sourceImage,
 		Options $options,
-		?WatermarkOptions $watermarkOptions,
 		IThumbnailApi $api
 	)
 	{
 		$this->sourceImage = $sourceImage;
 		$this->options = $options;
-		$this->watermarkOptions = $watermarkOptions;
 		$this->api = $api;
 	}
 
@@ -93,30 +88,28 @@ class Thumbnail
 
 	public function generate(): void
 	{
-		$image = Image::fromFile($this->sourceImage->getSrc());
+		$this->image = Image::fromFile($this->sourceImage->getSrc());
 
 		//if no dimension is set
 		if ($this->options->getWidth() === null 
 			&& $this->options->getHeight() === null) {
-			$this->options->setWidth($image->getWidth());
-			$this->options->setHeight($image->getHeight());
+			$this->options->setWidth($this->image->getWidth());
+			$this->options->setHeight($this->image->getHeight());
 		}
 
 		switch ($this->options->getOperation()) {
 			case Thumbnailer::CROP:
-				$image->resize($this->options->getWidth(), $this->options->getHeight(), Image::EXACT);
-				$this->image = $image;
+				$this->image->resize($this->options->getWidth(), $this->options->getHeight(), Image::EXACT);
 				break;
 			case Thumbnailer::EXACT:
-				$image->resize($this->options->getWidth(), $this->options->getHeight(), Image::FIT | Image::SHRINK_ONLY);
+				$this->image->resize($this->options->getWidth(), $this->options->getHeight(), Image::FIT | Image::SHRINK_ONLY);
 				$blank = Image::fromBlank($this->options->getWidth(), $this->options->getHeight(), Image::rgb(255, 255, 255, 100));
-				$blank->place($image, '50%', '50%');
+				$blank->place($this->image, '50%', '50%');
 				$this->image = $blank;
 				$this->format = Image::PNG;
 				break;
 			case Thumbnailer::RESIZE:
-				$image->resize($this->options->getWidth(), $this->options->getHeight(), Image::FIT | Image::SHRINK_ONLY);
-				$this->image = $image;
+				$this->image->resize($this->options->getWidth(), $this->options->getHeight(), Image::FIT | Image::SHRINK_ONLY);
 				break;
 			default:
 				throw new \Sellastica\Thumbnailer\Exception\ThumbnailerException('Uknown operation ' . $this->options->getOperation());
@@ -124,18 +117,21 @@ class Thumbnail
 		}
 	}
 
-	public function watermark(): void
+	/**
+	 * @param \Sellastica\Thumbnailer\WatermarkOptions $watermarkOptions
+	 */
+	public function watermark(WatermarkOptions $watermarkOptions): void
 	{
 		try {
-			$watermarkImage = Image::fromFile($this->watermarkOptions->getSrc());
+			$watermarkImage = Image::fromFile($watermarkOptions->getSrc());
 			list($width, $height) = Image::calculateSize(
 				$this->image->getWidth(),
 				$this->image->getHeight(),
-				$this->watermarkOptions->getWidth(),
+				$watermarkOptions->getWidth(),
 				null
 			);
 			$watermarkImage->resize($width, $height);
-			$this->image->place($watermarkImage, $this->watermarkOptions->getLeft(), $this->watermarkOptions->getTop());
+			$this->image->place($watermarkImage, $watermarkOptions->getLeft(), $watermarkOptions->getTop());
 		} catch (\Nette\Utils\ImageException $e) {
 		}
 	}
@@ -167,7 +163,7 @@ class Thumbnail
 
 	public function save(): void
 	{
-		$this->api->save($this->getSrc(), $this->getImage());
+		$this->api->save($this->getSrc(), $this->image);
 	}
 
 	/**

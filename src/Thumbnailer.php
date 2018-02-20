@@ -34,7 +34,11 @@ class Thumbnailer
 	 * @param \Sellastica\Thumbnailer\WatermarkOptions|null $watermarkOptions
 	 * @return string
 	 */
-	public function create(string $url, Options $options, WatermarkOptions $watermarkOptions = null): string
+	public function create(
+		string $url,
+		Options $options,
+		WatermarkOptions $watermarkOptions = null
+	): string
 	{
 		if (!$this->urlResolver->match($url)) {
 			throw new ThumbnailerException(
@@ -50,21 +54,16 @@ class Thumbnailer
 
 		$src = $this->urlResolver->getSrc($url);
 		$sourceImage = new SourceImage($src, $url, $this->urlResolver->filemtime($src));
-		$thumbnail = new Thumbnail($sourceImage, $options, $watermarkOptions, $this->api);
+		$thumbnail = new Thumbnail($sourceImage, $options, $this->api);
 
-		if (!$thumbnail->isFresh() || (
-				$watermarkOptions
-				&& $watermarkOptions->getLastChangeTimestamp()
-				&& $watermarkOptions->getLastChangeTimestamp() > $thumbnail->getTimestamp()
-			)) {
+		if (!$thumbnail->isFresh()) {
 			try {
 				$thumbnail->increaseMemoryLimit();
 				$thumbnail->generate();
 				if ($watermarkOptions
-					&& $watermarkOptions->useWatermark()
 					&& $thumbnail->getImage()->getWidth() >= $watermarkOptions->getMinimalImageWidth()
 					&& $thumbnail->getImage()->getHeight() >= $watermarkOptions->getMinimalImageHeight()) {
-					$thumbnail->watermark();
+					$thumbnail->watermark($watermarkOptions);
 				}
 
 				$thumbnail->save();
@@ -87,5 +86,13 @@ class Thumbnailer
 	public function createPlaceholder(?int $width, ?int $height)
 	{
 		return \Sellastica\Utils\Images::getPlaceholderUrl($width, $height);
+	}
+
+	/**
+	 * @return \Sellastica\Thumbnailer\IThumbnailApi
+	 */
+	public function getApi(): \Sellastica\Thumbnailer\IThumbnailApi
+	{
+		return $this->api;
 	}
 }
