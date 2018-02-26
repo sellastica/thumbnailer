@@ -103,7 +103,7 @@ class Thumbnail
 				break;
 			case Thumbnailer::EXACT:
 				$this->image->resize($this->options->getWidth(), $this->options->getHeight(), Image::FIT | Image::SHRINK_ONLY);
-				$blank = Image::fromBlank($this->options->getWidth(), $this->options->getHeight(), Image::rgb(255, 255, 255, 100));
+				$blank = Image::fromBlank($this->options->getWidth(), $this->options->getHeight(), Image::rgb(255, 255, 255));
 				$blank->place($this->image, '50%', '50%');
 				$this->image = $blank;
 				$this->format = Image::PNG;
