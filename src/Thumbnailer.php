@@ -71,7 +71,7 @@ class Thumbnailer
 				$thumbnail->restoreMemoryLimit();
 			} catch (\Exception $e) {
 				$thumbnail->restoreMemoryLimit();
-				throw $e;
+				return $this->createPlaceholder($options->getWidth(), $options->getHeight());
 			}
 		}
 
