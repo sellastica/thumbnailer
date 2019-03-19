@@ -13,6 +13,8 @@ class Thumbnailer
 	private $api;
 	/** @var IResourceUrlResolver */
 	private $urlResolver;
+	/** @var string */
+	private $placeholderColor = 'f5f5f5';
 
 
 	/**
@@ -85,7 +87,7 @@ class Thumbnailer
 	 */
 	public function createPlaceholder(?int $width, ?int $height)
 	{
-		return \Sellastica\Utils\Images::getPlaceholderUrl($width, $height);
+		return \Sellastica\Utils\Images::getPlaceholderUrl($width, $height, $this->placeholderColor);
 	}
 
 	/**
@@ -94,5 +96,13 @@ class Thumbnailer
 	public function getApi(): \Sellastica\Thumbnailer\IThumbnailApi
 	{
 		return $this->api;
+	}
+
+	/**
+	 * @param string $placeholderColor
+	 */
+	public function setPlaceholderColor(string $placeholderColor): void
+	{
+		$this->placeholderColor = $placeholderColor;
 	}
 }
